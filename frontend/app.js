@@ -1,5 +1,5 @@
 // ⚠️ Remplace cette URL par celle de ton backend une fois déployé sur Render
-const API_BASE_URL = 'https://TON-BACKEND.onrender.com';
+const API_BASE_URL = 'https://stepintofootball-platform.onrender.com';
 
 const MAX_SLOTS = 5;
 const MIN_DURATION = 20;
