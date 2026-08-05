@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Step into Football — Générateur de Highlights</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="stadium-glow"></div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="badge">⚽</div>
+    <div class="header-text">
+      <h1>Step into Football</h1>
+      <p class="subtitle">Compose ton highlight en 5 séquences maximum</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="teamsheet-card">
+    <h2 class="card-title">Infos joueur</h2>
+    <div class="player-fields">
+      <label>Nom
+        <input type="text" id="playerName" placeholder="Ex : Ismaël D." maxlength="40">
+      </label>
+      <label>Poste
+        <input type="text" id="playerPosition" placeholder="Ex : Ailier droit" maxlength="30">
+      </label>
+      <label>Pied fort
+        <select id="playerFoot">
+          <option value="">—</option>
+          <option value="Pied droit">Pied droit</option>
+          <option value="Pied gauche">Pied gauche</option>
+          <option value="Ambidextre">Ambidextre</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="squad-card">
+    <h2 class="card-title">Séquences vidéo <span class="hint">5–45 sec chacune, 5 maximum</span></h2>
+    <div class="slots" id="slots"></div>
+    <p class="error-msg" id="errorMsg"></p>
+  </section>
+
+  <section class="generate-zone">
+    <button id="generateBtn" class="generate-btn" disabled>
+      <span class="btn-label">Générer le highlight</span>
+      <span class="btn-sub">Enchaîne tes séquences dans l'ordre</span>
+    </button>
+    <div id="progressArea" class="progress-area hidden">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <p id="progressText">Analyse en cours…</p>
+    </div>
+  </section>
+
+  <section id="resultArea" class="result-area hidden">
+    <h2 class="card-title">Ton highlight est prêt 🏆</h2>
+    <video id="resultVideo" controls></video>
+    <div class="result-actions">
+      <a id="downloadLink" class="download-btn" download="highlight.mp4">Télécharger la vidéo</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>Fait pour repérer les talents, une séquence à la fois.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
