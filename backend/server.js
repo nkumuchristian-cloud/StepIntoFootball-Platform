@@ -7,8 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 
-const { extractFrames, cutAndNormalizeSegment, addIntroOverlay, concatSegments } = require('./utils/ffmpegProcessor');
-const { findBestSegment } = require('./utils/claudeAnalyzer');
+const { getVideoDuration, cutAndNormalizeSegment, addIntroOverlay, concatSegments } = require('./utils/ffmpegProcessor');
 
 const app = express();
 app.use(cors());
@@ -54,19 +53,16 @@ app.post('/api/generate-highlights', upload.array('videos', 5), async (req, res)
 
     const normalizedSegments = [];
 
-    // 1. Pour chaque vidéo : extraction frames -> analyse Claude -> découpe + normalisation
+    // 1. Pour chaque vidéo : normalisation (résolution/codec + fondus), clip entier conservé
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const videoPath = file.path;
-      const framesDir = path.join(jobDir, `frames-${i}`);
-
-      const { frames, duration } = await extractFrames(videoPath, framesDir);
-      const best = await findBestSegment(frames, duration);
+      const duration = await getVideoDuration(videoPath);
 
       const segPath = path.join(jobDir, `segment-${i}.mp4`);
-      await cutAndNormalizeSegment(videoPath, best.start, best.duration, segPath);
+      await cutAndNormalizeSegment(videoPath, 0, duration, segPath);
 
-      normalizedSegments.push({ path: segPath, reason: best.reason });
+      normalizedSegments.push({ path: segPath });
     }
 
     // 2. Ajout du texte d'intro (nom/poste/pied fort) sur le 1er segment
@@ -77,7 +73,7 @@ app.post('/api/generate-highlights', upload.array('videos', 5), async (req, res)
       normalizedSegments[0].path = introPath;
     }
 
-    // 3. Concaténation finale
+    // 3. Concaténation finale (les clips s'enchaînent dans l'ordre d'ajout)
     const finalPath = path.join(jobDir, 'highlight-final.mp4');
     await concatSegments(normalizedSegments.map(s => s.path), finalPath, jobDir);
 
@@ -90,8 +86,7 @@ app.post('/api/generate-highlights', upload.array('videos', 5), async (req, res)
 
     res.json({
       success: true,
-      videoUrl: uploadResult.secure_url,
-      breakdown: normalizedSegments.map((s, i) => ({ clip: i + 1, reason: s.reason }))
+      videoUrl: uploadResult.secure_url
     });
   } catch (err) {
     console.error(err);
