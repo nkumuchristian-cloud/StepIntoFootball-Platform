@@ -19,17 +19,7 @@ Le projet a 2 parties :
 
 ---
 
-## Étape 2 — Récupérer ta clé API Anthropic (Claude)
-
-1. Va sur https://console.anthropic.com/settings/keys
-2. Clique sur "Create Key", donne-lui un nom (ex : "highlight-app")
-3. Copie la clé générée (elle commence par `sk-ant-...`) — tu ne pourras plus la revoir après, donc garde-la de côté dans un fichier texte temporaire
-
-⚠️ Cette clé consomme du crédit à chaque utilisation (quelques centimes par vidéo générée). Anthropic offre généralement un petit crédit gratuit à l'inscription, largement suffisant pour tester.
-
----
-
-## Étape 3 — Mettre le code sur GitHub
+## Étape 2 — Mettre le code sur GitHub
 
 Render et Netlify déploient à partir d'un dépôt GitHub.
 
@@ -42,7 +32,7 @@ Render et Netlify déploient à partir d'un dépôt GitHub.
 
 ---
 
-## Étape 4 — Déployer le backend sur Render
+## Étape 3 — Déployer le backend sur Render
 
 1. Va sur https://render.com et crée un compte (tu peux te connecter avec GitHub directement)
 2. Clique "New +" → "Web Service"
@@ -56,7 +46,6 @@ Render et Netlify déploient à partir d'un dépôt GitHub.
 5. Descends jusqu'à "Environment Variables" et ajoute :
    | Clé | Valeur |
    |---|---|
-   | `ANTHROPIC_API_KEY` | ta clé `sk-ant-...` de l'étape 2 |
    | `CLOUDINARY_CLOUD_NAME` | ton Cloud Name de l'étape 1 |
    | `CLOUDINARY_API_KEY` | ton API Key de l'étape 1 |
    | `CLOUDINARY_API_SECRET` | ton API Secret de l'étape 1 |
@@ -68,7 +57,7 @@ Render et Netlify déploient à partir d'un dépôt GitHub.
 
 ---
 
-## Étape 5 — Connecter le frontend au backend
+## Étape 4 — Connecter le frontend au backend
 
 1. Ouvre le fichier `frontend/app.js`
 2. Tout en haut, remplace :
@@ -83,7 +72,7 @@ Render et Netlify déploient à partir d'un dépôt GitHub.
 
 ---
 
-## Étape 6 — Déployer le frontend sur Netlify
+## Étape 5 — Déployer le frontend sur Netlify
 
 1. Va sur https://netlify.com et connecte-toi avec GitHub
 2. Clique "Add new site" → "Import an existing project"
@@ -103,7 +92,7 @@ C'est cette URL que tu partages avec ton cousin (ou l'agent) pour utiliser le si
 
 1. Ouvre l'URL Netlify
 2. Remplis le nom/poste/pied fort
-3. Ajoute 1 à 5 vidéos (20-45 secondes chacune)
+3. Ajoute 1 à 5 vidéos (5-45 secondes chacune)
 4. Clique "Générer le highlight"
 5. Patiente 1-3 minutes (le premier essai peut être plus long si le backend Render se réveille)
 6. La vidéo finale apparaît avec un bouton de téléchargement
@@ -112,9 +101,8 @@ C'est cette URL que tu partages avec ton cousin (ou l'agent) pour utiliser le si
 
 ## Limites du plan gratuit à connaître
 
-- **Render Free** : le serveur s'endort après inactivité, RAM/CPU limités (le traitement de 5 vidéos peut prendre 1-3 min)
+- **Render Free** : le serveur s'endort après inactivité, RAM/CPU limités (le traitement de plusieurs vidéos peut prendre 1-2 min)
 - **Cloudinary Free** : ~25 crédits/mois (largement assez pour des tests, mais pas pour un usage à grande échelle avec plein de joueurs)
-- **API Claude** : facturée à l'usage (quelques centimes par génération), pas de plan "gratuit à vie" — pense à surveiller ta consommation sur https://console.anthropic.com/settings/usage
 
 Si un jour tu veux ouvrir ça à plus de monde, il faudra passer sur des plans payants (Render Starter ~7$/mois évite l'endormissement, Cloudinary Plus si plus de stockage).
 
@@ -122,6 +110,6 @@ Si un jour tu veux ouvrir ça à plus de monde, il faudra passer sur des plans p
 
 ## En cas de souci
 
-- **"Erreur serveur" au moment de générer** → vérifie que les 4 variables d'environnement sont bien remplies sur Render (Étape 4.5)
+- **"Erreur serveur" au moment de générer** → vérifie que les 3 variables d'environnement Cloudinary sont bien remplies sur Render
 - **Rien ne se passe après 5 minutes** → le serveur Render gratuit peut mettre du temps à démarrer la première fois ; réessaie
-- **Vidéo refusée** → vérifie qu'elle dure bien entre 20 et 45 secondes et qu'elle est en .mp4, .mov, .webm ou .mkv
+- **Vidéo refusée** → vérifie qu'elle dure bien entre 5 et 45 secondes et qu'elle est en .mp4, .mov, .webm ou .mkv
