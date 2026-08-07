@@ -67,7 +67,7 @@ function cutAndNormalizeSegment(videoPath, start, duration, outputPath, { fadeIn
         `afade=t=in:st=0:d=${fadeIn}`,
         `afade=t=out:st=${fadeOutStart}:d=${fadeOut}`
       ])
-      .outputOptions(['-c:v libx264', '-c:a aac', '-r 30'])
+      .outputOptions(['-c:v libx264', '-preset ultrafast', '-c:a aac', '-r 30'])
       .output(outputPath)
       .on('end', resolve)
       .on('error', reject)
@@ -101,7 +101,7 @@ function addIntroOverlay(segmentPath, outputPath, { name, position, foot }) {
           }
         }
       ])
-      .outputOptions(['-c:v libx264', '-c:a copy'])
+      .outputOptions(['-c:v libx264', '-preset ultrafast', '-c:a copy'])
       .output(outputPath)
       .on('end', resolve)
       .on('error', reject)
@@ -122,7 +122,7 @@ function concatSegments(segmentPaths, outputPath, tmpDir) {
     ffmpeg()
       .input(listFile)
       .inputOptions(['-f concat', '-safe 0'])
-      .outputOptions(['-c:v libx264', '-c:a aac'])
+      .outputOptions(['-c copy'])
       .output(outputPath)
       .on('end', resolve)
       .on('error', reject)
