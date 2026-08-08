@@ -7,7 +7,8 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 
-const { getVideoDuration, cutAndNormalizeSegment, addIntroOverlay, concatSegments } = require('./utils/ffmpegProcessor');
+const { getVideoDuration, extractFrames, cutAndNormalizeSegment, addIntroOverlay, concatSegments, addBackgroundMusic } = require('./utils/ffmpegProcessor');
+const { findBestSegment } = require('./utils/claudeAnalyzer');
 
 const app = express();
 app.use(cors());
@@ -53,16 +54,19 @@ app.post('/api/generate-highlights', upload.array('videos', 5), async (req, res)
 
     const normalizedSegments = [];
 
-    // 1. Pour chaque vidéo : normalisation (résolution/codec + fondus), clip entier conservé
+    // 1. Pour chaque vidéo : extraction de frames -> analyse Claude Vision -> découpe du meilleur passage
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const videoPath = file.path;
-      const duration = await getVideoDuration(videoPath);
+      const framesDir = path.join(jobDir, `frames-${i}`);
+
+      const { frames, duration } = await extractFrames(videoPath, framesDir);
+      const best = await findBestSegment(frames, duration);
 
       const segPath = path.join(jobDir, `segment-${i}.mp4`);
-      await cutAndNormalizeSegment(videoPath, 0, duration, segPath);
+      await cutAndNormalizeSegment(videoPath, best.start, best.duration, segPath);
 
-      normalizedSegments.push({ path: segPath });
+      normalizedSegments.push({ path: segPath, reason: best.reason });
     }
 
     // 2. Ajout du texte d'intro (nom/poste/pied fort) sur le 1er segment
@@ -74,8 +78,16 @@ app.post('/api/generate-highlights', upload.array('videos', 5), async (req, res)
     }
 
     // 3. Concaténation finale (les clips s'enchaînent dans l'ordre d'ajout)
-    const finalPath = path.join(jobDir, 'highlight-final.mp4');
+    let finalPath = path.join(jobDir, 'highlight-final.mp4');
     await concatSegments(normalizedSegments.map(s => s.path), finalPath, jobDir);
+
+    // 3bis. Ajout de la musique de fond (si le fichier est présent dans backend/assets/music.mp3)
+    const musicPath = path.join(__dirname, 'assets', 'music.mp3');
+    if (fs.existsSync(musicPath)) {
+      const withMusicPath = path.join(jobDir, 'highlight-final-music.mp4');
+      await addBackgroundMusic(finalPath, musicPath, withMusicPath);
+      finalPath = withMusicPath;
+    }
 
     // 4. Upload Cloudinary
     const uploadResult = await cloudinary.uploader.upload(finalPath, {
@@ -86,7 +98,8 @@ app.post('/api/generate-highlights', upload.array('videos', 5), async (req, res)
 
     res.json({
       success: true,
-      videoUrl: uploadResult.secure_url
+      videoUrl: uploadResult.secure_url,
+      breakdown: normalizedSegments.map((s, i) => ({ clip: i + 1, reason: s.reason }))
     });
   } catch (err) {
     console.error(err);
