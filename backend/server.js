@@ -83,10 +83,18 @@ app.post('/api/generate-highlights', upload.array('videos', 5), async (req, res)
 
     // 3bis. Ajout de la musique de fond (si le fichier est présent dans backend/assets/music.mp3)
     const musicPath = path.join(__dirname, 'assets', 'music.mp3');
-    if (fs.existsSync(musicPath)) {
-      const withMusicPath = path.join(jobDir, 'highlight-final-music.mp4');
-      await addBackgroundMusic(finalPath, musicPath, withMusicPath);
-      finalPath = withMusicPath;
+    const musicExists = fs.existsSync(musicPath);
+    console.log(`Musique de fond : ${musicExists ? 'trouvée (' + musicPath + ')' : 'ABSENTE — vérifie que backend/assets/music.mp3 existe bien sur GitHub et a été déployé'}`);
+
+    if (musicExists) {
+      try {
+        const withMusicPath = path.join(jobDir, 'highlight-final-music.mp4');
+        await addBackgroundMusic(finalPath, musicPath, withMusicPath);
+        finalPath = withMusicPath;
+        console.log('Musique mixée avec succès.');
+      } catch (musicErr) {
+        console.error('Échec du mixage musical, on continue sans musique :', musicErr.message || musicErr);
+      }
     }
 
     // 4. Upload Cloudinary
