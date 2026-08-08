@@ -130,10 +130,42 @@ function concatSegments(segmentPaths, outputPath, tmpDir) {
   });
 }
 
+/**
+ * Mixe une musique de fond (en boucle si besoin) avec la vidéo finale.
+ * Le son original des clips est très atténué, la musique domine,
+ * avec un fondu de sortie propre en fin de vidéo.
+ */
+function addBackgroundMusic(videoPath, musicPath, outputPath, { originalVolume = 0.05, fadeOutDuration = 2 } = {}) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const duration = await getVideoDuration(videoPath);
+      const fadeStart = Math.max(0, duration - fadeOutDuration);
+
+      ffmpeg()
+        .input(videoPath)
+        .input(musicPath)
+        .inputOptions(['-stream_loop -1']) // boucle la musique si elle est plus courte que la vidéo
+        .complexFilter([
+          `[0:a]volume=${originalVolume}[orig]`,
+          `[1:a]afade=t=out:st=${fadeStart}:d=${fadeOutDuration}[musicfaded]`,
+          `[orig][musicfaded]amix=inputs=2:duration=first:dropout_transition=2[aout]`
+        ])
+        .outputOptions(['-map 0:v', '-map [aout]', '-c:v copy', '-c:a aac', '-shortest'])
+        .output(outputPath)
+        .on('end', resolve)
+        .on('error', reject)
+        .run();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
 module.exports = {
   getVideoDuration,
   extractFrames,
   cutAndNormalizeSegment,
   addIntroOverlay,
-  concatSegments
+  concatSegments,
+  addBackgroundMusic
 };
