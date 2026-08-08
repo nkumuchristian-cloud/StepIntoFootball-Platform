@@ -8,7 +8,7 @@ const MODEL = 'claude-sonnet-5'; // modèle vision actuel
  * d'identifier la meilleure séquence (geste technique, sprint, frappe...)
  * Retourne { start, duration, reason }
  */
-async function findBestSegment(frames, videoDuration) {
+async function findBestSegment(frames, videoDuration, targetDuration = 6) {
   // On limite à 12 frames max pour rester raisonnable en taille de requête
   const sampled = frames.length > 12
     ? frames.filter((_, i) => i % Math.ceil(frames.length / 12) === 0)
@@ -25,7 +25,7 @@ async function findBestSegment(frames, videoDuration) {
 
   const timestampsList = sampled.map(f => f.timestamp).join('s, ') + 's';
   const minSegDuration = Math.min(5, videoDuration);
-  const maxSegDuration = Math.min(8, videoDuration);
+  const maxSegDuration = Math.max(minSegDuration, Math.min(targetDuration, videoDuration));
 
   const prompt = `Voici une série d'images extraites d'une vidéo de foot amateur, prises aux instants suivants (en secondes depuis le début) : ${timestampsList}.
 La vidéo dure ${videoDuration.toFixed(1)} secondes au total.
@@ -79,4 +79,42 @@ Le "start" doit être cohérent avec les timestamps fournis et rester dans les l
   return { start, duration, reason: parsed.reason || '' };
 }
 
-module.exports = { findBestSegment };
+/**
+ * Calcule la durée cible du highlight final en fonction du cumul des vidéos sources.
+ * Règle : ~75% du cumul total, avec un plancher de 20s.
+ * (ex: 1min de vidéos sources -> ~45s de highlight, 2min -> ~1min30)
+ */
+function computeTargetHighlightDuration(totalInputDuration) {
+  return Math.max(20, totalInputDuration * 0.75);
+}
+
+/**
+ * Répartit la durée cible totale entre chaque clip. Si une vidéo est trop
+ * courte pour sa part équitable, l'excédent est redistribué vers les vidéos
+ * qui ont encore de la marge, pour se rapprocher au mieux de la cible totale.
+ */
+function computeClipTargets(durations, totalTarget) {
+  const n = durations.length;
+  const equalShare = Math.max(5, totalTarget / n);
+
+  let deficit = 0;
+  const capped = durations.map(d => {
+    if (equalShare > d) { deficit += equalShare - d; return d; }
+    return equalShare;
+  });
+
+  if (deficit > 0) {
+    const capacities = durations.map((d, i) => Math.max(0, d - capped[i]));
+    const totalCapacity = capacities.reduce((a, b) => a + b, 0);
+    if (totalCapacity > 0) {
+      const toDistribute = Math.min(deficit, totalCapacity);
+      for (let i = 0; i < n; i++) {
+        capped[i] += (capacities[i] / totalCapacity) * toDistribute;
+      }
+    }
+  }
+
+  return capped;
+}
+
+module.exports = { findBestSegment, computeTargetHighlightDuration, computeClipTargets };
