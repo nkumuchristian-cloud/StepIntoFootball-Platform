@@ -23,6 +23,14 @@ cloudinary.config({
 const TMP_ROOT = path.join(__dirname, 'tmp');
 if (!fs.existsSync(TMP_ROOT)) fs.mkdirSync(TMP_ROOT);
 
+// Diagnostic : montre exactement ce qui est déployé dans backend/assets/
+try {
+  const assetsContent = fs.readdirSync(path.join(__dirname, 'assets'));
+  console.log('Contenu de backend/assets/ au démarrage :', assetsContent);
+} catch (e) {
+  console.log('⚠️ Dossier backend/assets/ introuvable au démarrage :', e.message);
+}
+
 const upload = multer({
   dest: path.join(TMP_ROOT, 'uploads'),
   limits: { fileSize: 150 * 1024 * 1024, files: 5 }, // 150MB/vidéo max
@@ -62,6 +70,7 @@ app.post('/api/generate-highlights', upload.array('videos', 5), async (req, res)
 
       const { frames, duration } = await extractFrames(videoPath, framesDir);
       const best = await findBestSegment(frames, duration);
+      console.log(`Vidéo ${i + 1} (${duration.toFixed(1)}s) → segment retenu : start=${best.start.toFixed(1)}s, duration=${best.duration.toFixed(1)}s — "${best.reason}"`);
 
       const segPath = path.join(jobDir, `segment-${i}.mp4`);
       await cutAndNormalizeSegment(videoPath, best.start, best.duration, segPath);
@@ -80,6 +89,8 @@ app.post('/api/generate-highlights', upload.array('videos', 5), async (req, res)
     // 3. Concaténation finale (les clips s'enchaînent dans l'ordre d'ajout)
     let finalPath = path.join(jobDir, 'highlight-final.mp4');
     await concatSegments(normalizedSegments.map(s => s.path), finalPath, jobDir);
+    const finalDuration = await getVideoDuration(finalPath);
+    console.log(`Highlight assemblé : ${normalizedSegments.length} segments, durée totale = ${finalDuration.toFixed(1)}s`);
 
     // 3bis. Ajout de la musique de fond (si le fichier est présent dans backend/assets/music.mp3)
     const musicPath = path.join(__dirname, 'assets', 'music.mp3');
