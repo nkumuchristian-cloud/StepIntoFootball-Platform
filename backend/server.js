@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { getVideoDuration, extractFrames, cutAndNormalizeSegment, addIntroOverlay, concatSegments, addBackgroundMusic } = require('./utils/ffmpegProcessor');
-const { findBestSegment } = require('./utils/claudeAnalyzer');
+const { findBestSegment, computeTargetHighlightDuration, computeClipTargets } = require('./utils/claudeAnalyzer');
 
 const app = express();
 app.use(cors());
@@ -62,6 +62,14 @@ app.post('/api/generate-highlights', upload.array('videos', 5), async (req, res)
 
     const normalizedSegments = [];
 
+    // 0. Calcule la durée cible du highlight (proportionnelle au cumul des vidéos sources)
+    //    et la répartit entre les clips (avec redistribution si une vidéo est trop courte)
+    const sourceDurations = await Promise.all(files.map(f => getVideoDuration(f.path)));
+    const totalInputDuration = sourceDurations.reduce((a, b) => a + b, 0);
+    const targetHighlightDuration = computeTargetHighlightDuration(totalInputDuration);
+    const clipTargets = computeClipTargets(sourceDurations, targetHighlightDuration);
+    console.log(`Cumul vidéos sources : ${totalInputDuration.toFixed(1)}s → cible highlight : ${targetHighlightDuration.toFixed(1)}s (répartis : ${clipTargets.map(t => t.toFixed(1)).join(', ')})`);
+
     // 1. Pour chaque vidéo : extraction de frames -> analyse Claude Vision -> découpe du meilleur passage
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -69,7 +77,7 @@ app.post('/api/generate-highlights', upload.array('videos', 5), async (req, res)
       const framesDir = path.join(jobDir, `frames-${i}`);
 
       const { frames, duration } = await extractFrames(videoPath, framesDir);
-      const best = await findBestSegment(frames, duration);
+      const best = await findBestSegment(frames, duration, clipTargets[i]);
       console.log(`Vidéo ${i + 1} (${duration.toFixed(1)}s) → segment retenu : start=${best.start.toFixed(1)}s, duration=${best.duration.toFixed(1)}s — "${best.reason}"`);
 
       const segPath = path.join(jobDir, `segment-${i}.mp4`);
