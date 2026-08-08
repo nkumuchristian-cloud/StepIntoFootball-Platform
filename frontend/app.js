@@ -1,5 +1,5 @@
 // ⚠️ Remplace cette URL par celle de ton backend une fois déployé sur Render
-const API_BASE_URL = 'https://stepintofootball-platform.onrender.com';
+const API_BASE_URL = 'https://TON-BACKEND.onrender.com';
 
 const MAX_SLOTS = 5;
 const MIN_DURATION = 5;
@@ -14,6 +14,7 @@ const progressText = document.getElementById('progressText');
 const resultArea = document.getElementById('resultArea');
 const resultVideo = document.getElementById('resultVideo');
 const downloadLink = document.getElementById('downloadLink');
+const breakdownList = document.getElementById('breakdownList');
 
 // État des 5 emplacements : null si vide, sinon { file, url }
 const slots = Array(MAX_SLOTS).fill(null);
@@ -114,9 +115,10 @@ async function generateHighlights() {
 
   // Simulation de progression pendant le traitement (le vrai traitement peut prendre 1-3 min)
   const steps = [
-    [20, 'Envoi des séquences…'],
-    [50, 'Normalisation des vidéos…'],
-    [80, 'Assemblage final…']
+    [15, 'Envoi des séquences…'],
+    [35, 'Analyse des meilleurs moments (IA)…'],
+    [60, 'Découpe et montage…'],
+    [85, 'Assemblage final…']
   ];
   let stepIndex = 0;
   const interval = setInterval(() => {
@@ -144,6 +146,12 @@ async function generateHighlights() {
 
     resultVideo.src = data.videoUrl;
     downloadLink.href = data.videoUrl;
+    breakdownList.innerHTML = '';
+    (data.breakdown || []).forEach(b => {
+      const li = document.createElement('li');
+      li.textContent = `Séquence ${b.clip} : ${b.reason}`;
+      breakdownList.appendChild(li);
+    });
 
     setTimeout(() => {
       progressArea.classList.add('hidden');
