@@ -24,7 +24,8 @@ async function findBestSegment(frames, videoDuration) {
   }));
 
   const timestampsList = sampled.map(f => f.timestamp).join('s, ') + 's';
-  const maxSegDuration = Math.min(8, Math.max(3, videoDuration - 0.5));
+  const minSegDuration = Math.min(5, videoDuration);
+  const maxSegDuration = Math.min(8, videoDuration);
 
   const prompt = `Voici une série d'images extraites d'une vidéo de foot amateur, prises aux instants suivants (en secondes depuis le début) : ${timestampsList}.
 La vidéo dure ${videoDuration.toFixed(1)} secondes au total.
@@ -32,7 +33,7 @@ La vidéo dure ${videoDuration.toFixed(1)} secondes au total.
 Analyse ces images et identifie le MEILLEUR moment technique visible (jonglage réussi, frappe puissante, sprint, dribble, contrôle, but...).
 
 Réponds UNIQUEMENT avec un objet JSON, sans aucun texte autour, au format exact :
-{"start": <nombre en secondes, début du meilleur passage>, "duration": <nombre en secondes entre 3 et ${maxSegDuration.toFixed(1)}>, "reason": "<courte explication en français>"}
+{"start": <nombre en secondes, début du meilleur passage>, "duration": <nombre en secondes entre ${minSegDuration.toFixed(1)} et ${maxSegDuration.toFixed(1)}>, "reason": "<courte explication en français>"}
 
 Le "start" doit être cohérent avec les timestamps fournis et rester dans les limites de la vidéo (start + duration <= ${videoDuration.toFixed(1)}).`;
 
@@ -71,8 +72,8 @@ Le "start" doit être cohérent avec les timestamps fournis et rester dans les l
     parsed = { start: Math.max(0, videoDuration / 2 - 3), duration: Math.min(6, maxSegDuration), reason: 'Sélection par défaut' };
   }
 
-  // Sécurisation des bornes
-  const duration = Math.min(Math.max(parsed.duration || 6, 3), maxSegDuration);
+  // Sécurisation des bornes : au moins 5 sec (ou la vidéo entière si plus courte), au plus 8 sec
+  const duration = Math.min(Math.max(parsed.duration || 6, minSegDuration), maxSegDuration);
   const start = Math.min(Math.max(parsed.start || 0, 0), Math.max(0, videoDuration - duration));
 
   return { start, duration, reason: parsed.reason || '' };
